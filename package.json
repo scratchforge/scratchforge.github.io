@@ -1,6 +1,7 @@
 {
-  "homepage": "https://immanueldavidckp.github.io",
+  "homepage": "https://scratchforge.github.io",
   "dependencies": {
+    "firebase": "^12.6.0",
     "react-router-dom": "^7.9.6"
   },
   "scripts": {
