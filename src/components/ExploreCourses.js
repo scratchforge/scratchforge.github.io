@@ -55,7 +55,7 @@ function ExploreCourses() {
               </span>
             </div>
             <Link 
-              to={`/course/${course.id}`}
+              to={`/course-details/${course.id}`}
               style={{
                 display: 'block',
                 textAlign: 'center',

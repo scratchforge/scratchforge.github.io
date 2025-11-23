@@ -9,7 +9,11 @@ import UserProfile from './components/UserProfile';
 import Dashboard from './components/Dashboard';
 import ExploreCourses from './components/ExploreCourses';
 import PracticeArena from './components/PracticeArena';
+import CourseDetails from './components/CourseDetails';
+import AdminDashboard from './components/AdminDashboard';
+import AdminDoubts from './components/AdminDoubts';
 import { coursesArray } from "./courses";
+import { isAdmin } from './utils/adminAuth';
 import "./App.css";
 
 function App() {
@@ -25,20 +29,20 @@ function App() {
   return (
     <Router>
       <div className="app">
-        <nav style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <nav style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           padding: '15px 30px',
           backgroundColor: '#2c3e50',
           boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
         }}>
           <h1 style={{ margin: 0, color: 'white', fontSize: '24px' }}>ScratchForge</h1>
-          
-          <ul style={{ 
-            display: 'flex', 
-            listStyle: 'none', 
-            margin: 0, 
+
+          <ul style={{
+            display: 'flex',
+            listStyle: 'none',
+            margin: 0,
             padding: 0,
             gap: '10px',
             alignItems: 'center'
@@ -54,7 +58,7 @@ function App() {
                 🏠 Home
               </Link>
             </li>
-            
+
             {user && (
               <li>
                 <Link to="/dashboard" style={{
@@ -102,7 +106,26 @@ function App() {
                 💡 Practice Arena
               </Link>
             </li>
-            
+
+            {user && isAdmin(user) && (
+              <li>
+                <Link to="/admin" style={{
+                  backgroundColor: '#9C27B0',
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'background 0.3s'
+                }}>
+                  👨‍💼 Admin
+                </Link>
+              </li>
+            )}
+
             {user ? (
               <li>
                 <Link to="/profile" style={{ display: 'flex', alignItems: 'center' }}>
@@ -148,7 +171,10 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/explore" element={<ExploreCourses />} />
           <Route path="/practice" element={<PracticeArena />} />
+          <Route path="/course-details/:courseId" element={<CourseDetails />} />
           <Route path="/course/:courseId" element={<Course />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/doubts" element={<AdminDoubts />} />
         </Routes>
       </div>
     </Router>

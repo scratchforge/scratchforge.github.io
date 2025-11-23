@@ -1,219 +1,344 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
-import { allCourses } from "../courses";
-import "../styles/Course.css";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase';
+import { doc, updateDoc, getDoc, increment } from 'firebase/firestore';
+import { coursesArray } from '../courses';
+import Quiz from './Quiz';
+import DoubtSection from './DoubtSection';
 
 function Course() {
   const { courseId } = useParams();
-  const course = allCourses[courseId];
+  const navigate = useNavigate();
   const [currentSessionIndex, setCurrentSessionIndex] = useState(0);
-  const [quizAnswers, setQuizAnswers] = useState({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [courseData, setCourseData] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizPassed, setQuizPassed] = useState([]);
 
-  if (!course) {
-    return <div className="container">Course not found.</div>;
-  }
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    setUser(currentUser);
 
-  const session = course.sessions[currentSessionIndex];
+    const course = coursesArray.find((c) => c.id === courseId);
+    if (course) {
+      setCourseData(course);
+      loadUserProgress(currentUser.uid, courseId);
+    }
+  }, [courseId, navigate]);
 
-  const handleQuizAnswer = (questionIndex, answerIndex) => {
-    setQuizAnswers({
-      ...quizAnswers,
-      [questionIndex]: answerIndex
-    });
-  };
+  const loadUserProgress = async (userId, courseId) => {
+    try {
+      const enrollmentRef = doc(db, 'users', userId, 'enrolledCourses', courseId);
+      const enrollmentSnap = await getDoc(enrollmentRef);
 
-  const handleSubmitQuiz = () => {
-    setQuizSubmitted(true);
-  };
-
-  const calculateScore = () => {
-    let correct = 0;
-    session.questions.forEach((question, index) => {
-      if (quizAnswers[index] === question.answer) {
-        correct++;
+      if (enrollmentSnap.exists()) {
+        const data = enrollmentSnap.data();
+        setCurrentSessionIndex(data.currentLesson || 0);
+        setQuizPassed(data.quizPassed || []);
       }
-    });
-    return { correct, total: session.questions.length };
+    } catch (error) {
+      console.error('Error loading progress:', error);
+    }
   };
 
-  return (
-    <div className="course-container">
-      <div className="course-header" style={{ backgroundColor: course.color }}>
-        <h2>{course.title}</h2>
-        <p>Session {currentSessionIndex + 1} of {course.sessions.length}</p>
-      </div>
+  const handleQuizPass = async (score, totalQuestions) => {
+    if (!user || !courseData) return;
 
-      <div className="course-content">
-        <h3>{session.title}</h3>
-        <div 
-          className="lesson-content"
-          dangerouslySetInnerHTML={{ __html: session.content }}
-        />
+    try {
+      const newQuizPassed = [...new Set([...quizPassed, currentSessionIndex])];
+      setQuizPassed(newQuizPassed);
 
-        {/* Tools Section */}
-        {session.tools && session.tools.length > 0 && (
-          <div className="tools-section">
-            <h4>🛠️ Interactive Tools</h4>
-            {session.tools.map((tool, toolIndex) => (
-              <ToolRenderer key={toolIndex} tool={tool} courseColor={course.color} />
-            ))}
-          </div>
-        )}
+      // Calculate overall progress
+      const totalLessons = courseData.sessions.length;
+      const progressPercent = Math.round((newQuizPassed.length / totalLessons) * 100);
+      const isCompleted = progressPercent === 100;
 
-        {/* Quiz Section */}
-        {session.questions && session.questions.length > 0 && (
-          <div className="quiz-section">
-            <h4>📝 Quiz Questions</h4>
-            {session.questions.map((question, qIndex) => (
-              <div key={qIndex} className="quiz-question">
-                <p><strong>Q{qIndex + 1}: {question.q}</strong></p>
-                {question.options.map((option, oIndex) => (
-                  <label key={oIndex} className="quiz-option">
-                    <input
-                      type="radio"
-                      name={`question-${qIndex}`}
-                      checked={quizAnswers[qIndex] === oIndex}
-                      onChange={() => handleQuizAnswer(qIndex, oIndex)}
-                      disabled={quizSubmitted}
-                    />
-                    {option}
-                    {quizSubmitted && (
-                      <span className={oIndex === question.answer ? "correct" : ""}>
-                        {oIndex === question.answer ? " ✓" : ""}
-                      </span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            ))}
+      // Update Firebase
+      const enrollmentRef = doc(db, 'users', user.uid, 'enrolledCourses', courseId);
 
-            {!quizSubmitted ? (
-              <button 
-                className="submit-quiz-btn"
-                onClick={handleSubmitQuiz}
-                style={{ backgroundColor: course.color }}
-              >
-                Submit Quiz
-              </button>
-            ) : (
-              <div className="quiz-result">
-                <h5>Your Score: {calculateScore().correct}/{calculateScore().total}</h5>
-                <p>{Math.round((calculateScore().correct / calculateScore().total) * 100)}% Correct</p>
-              </div>
-            )}
-          </div>
-        )}
+      await updateDoc(enrollmentRef, {
+        currentLesson: currentSessionIndex,
+        quizPassed: newQuizPassed,
+        progress: progressPercent,
+        completed: isCompleted,
+        completedDate: isCompleted ? new Date().toISOString() : null,
+        lastAccessedDate: new Date().toISOString()
+      });
 
-        {/* Navigation */}
-        <div className="navigation">
-          <button
-            onClick={() => {
-              setCurrentSessionIndex(i => Math.max(i - 1, 0));
-              setQuizSubmitted(false);
-              setQuizAnswers({});
-            }}
-            disabled={currentSessionIndex === 0}
-            className="nav-btn"
-          >
-            ← Previous
-          </button>
-          <span className="session-counter">{currentSessionIndex + 1} / {course.sessions.length}</span>
-          <button
-            onClick={() => {
-              setCurrentSessionIndex(i => Math.min(i + 1, course.sessions.length - 1));
-              setQuizSubmitted(false);
-              setQuizAnswers({});
-            }}
-            disabled={currentSessionIndex === course.sessions.length - 1}
-            className="nav-btn"
-          >
-            Next →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+      if (isCompleted) {
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          totalCoursesCompleted: increment(1)
+        });
+      }
 
-// Calculator Tool Component
-function CalculatorTool({ tool, courseColor }) {
-  const [values, setValues] = useState({});
-  const [result, setResult] = useState(null);
+      setShowQuiz(false);
+      alert(`Great job! You scored ${score}/${totalQuestions}.`);
 
-  const handleInputChange = (key, value) => {
-    setValues({ ...values, [key]: value });
+      // Move to next lesson
+      if (currentSessionIndex < courseData.sessions.length - 1) {
+        setCurrentSessionIndex(currentSessionIndex + 1);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
-  const handleCalculate = () => {
-    const res = tool.calculate(values);
-    setResult(res);
+  const handleQuizFail = () => {
+    alert('You must answer all questions correctly to pass. Please review the lesson and try again.');
+    setShowQuiz(false);
   };
 
-  const handleReset = () => {
-    setValues({});
-    setResult(null);
+  const handleTakeQuiz = () => {
+    setShowQuiz(true);
   };
 
-  return (
-    <div className="tool-calculator">
-      <h5>{tool.name}</h5>
-      <p className="tool-description">{tool.description}</p>
-      
-      <div className="tool-fields">
-        {tool.fields.map((field) => (
-          <div key={field.key} className="field-group">
-            <label>{field.label}</label>
-            <input
-              type="number"
-              placeholder={field.placeholder}
-              value={values[field.key] || ''}
-              onChange={(e) => handleInputChange(field.key, e.target.value)}
-            />
-          </div>
-        ))}
-      </div>
+  const canAccessLesson = (lessonIndex) => {
+    if (lessonIndex === 0) return true;
+    return quizPassed.includes(lessonIndex - 1);
+  };
 
-      <div className="tool-buttons">
-        <button onClick={handleCalculate} className="btn-calculate" style={{ backgroundColor: courseColor }}>
-          Calculate
-        </button>
-        <button onClick={handleReset} className="btn-reset">
-          Reset
-        </button>
-      </div>
-
-      {result !== null && (
-        <div className="tool-result">
-          <p className="result-label">Result:</p>
-          <p className="result-value">{result} {tool.unit}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Interactive Tool Component
-function InteractiveTool({ tool }) {
-  return (
-    <div className="tool-interactive">
-      <h5>{tool.name}</h5>
-      <p className="tool-description">{tool.description}</p>
-      <div className="tool-placeholder">
-        <p>🎮 Interactive visualization coming soon!</p>
-      </div>
-    </div>
-  );
-}
-
-// Tool Renderer
-function ToolRenderer({ tool, courseColor }) {
-  if (tool.type === 'calculator') {
-    return <CalculatorTool tool={tool} courseColor={courseColor} />;
-  } else if (tool.type === 'interactive') {
-    return <InteractiveTool tool={tool} />;
+  if (!courseData) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
   }
-  return null;
+
+  const currentSession = courseData.sessions[currentSessionIndex];
+
+  // Get quiz from current session - adapt to your format
+  const currentQuiz = currentSession.questions ? {
+    questions: currentSession.questions.map(q => ({
+      question: q.q,
+      options: q.options,
+      correctAnswer: q.answer
+    })),
+    passingScore: currentSession.questions.length
+  } : null;
+
+  const totalLessons = courseData.sessions.length;
+  const progressPercent = Math.round((quizPassed.length / totalLessons) * 100);
+  const isCurrentLessonPassed = quizPassed.includes(currentSessionIndex);
+  const canAccessCurrent = canAccessLesson(currentSessionIndex);
+
+  if (showQuiz && currentQuiz) {
+    return (
+      <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+        <Quiz
+          quiz={currentQuiz}
+          onPass={handleQuizPass}
+          onFail={handleQuizFail}
+          lessonTitle={currentSession.title}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Progress Header */}
+      <div style={{
+        backgroundColor: '#f5f5f5',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '30px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <div>
+            <h1 style={{ margin: '0 0 5px 0', fontSize: '28px' }}>{courseData.title}</h1>
+            <p style={{ margin: 0, color: '#666' }}>
+              Lesson {currentSessionIndex + 1} of {totalLessons}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50' }}>
+              {progressPercent}%
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>Complete</div>
+          </div>
+        </div>
+
+        <div style={{
+          width: '100%',
+          height: '12px',
+          backgroundColor: '#e0e0e0',
+          borderRadius: '6px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${progressPercent}%`,
+            height: '100%',
+            backgroundColor: '#4CAF50',
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '20px' }}>
+        {/* Lesson Sidebar */}
+        <div style={{
+          backgroundColor: 'white',
+          border: '1px solid #ddd',
+          borderRadius: '10px',
+          padding: '20px',
+          maxHeight: '700px',
+          overflowY: 'auto'
+        }}>
+          <h3 style={{ marginBottom: '20px' }}>Course Content</h3>
+          {courseData.sessions.map((session, index) => {
+            const canAccess = canAccessLesson(index);
+            const isPassed = quizPassed.includes(index);
+
+            return (
+              <div
+                key={index}
+                onClick={() => canAccess && setCurrentSessionIndex(index)}
+                style={{
+                  padding: '15px',
+                  marginBottom: '10px',
+                  borderRadius: '8px',
+                  cursor: canAccess ? 'pointer' : 'not-allowed',
+                  backgroundColor: currentSessionIndex === index ? '#E3F2FD' : 'white',
+                  border: `2px solid ${currentSessionIndex === index ? '#2196F3' : '#eee'}`,
+                  opacity: canAccess ? 1 : 0.5
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    backgroundColor: isPassed ? '#4CAF50' : canAccess ? '#2196F3' : '#e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    {isPassed ? '✓' : canAccess ? index + 1 : '🔒'}
+                  </div>
+                  <div style={{ flex: 1, fontSize: '14px', fontWeight: 'bold' }}>
+                    Lesson {index + 1}
+                  </div>
+                </div>
+                <div style={{ fontSize: '13px', color: '#666', paddingLeft: '38px' }}>
+                  {session.title}
+                </div>
+                {isPassed && (
+                  <div style={{ fontSize: '12px', color: '#4CAF50', paddingLeft: '38px', marginTop: '5px' }}>
+                    Quiz Passed ✓
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Content */}
+        <div style={{
+          backgroundColor: 'white',
+          border: '1px solid #ddd',
+          borderRadius: '10px',
+          padding: '40px'
+        }}>
+          {canAccessCurrent ? (
+            <>
+              <div dangerouslySetInnerHTML={{ __html: currentSession.content }} />
+
+              {/* Quiz Section */}
+              {currentQuiz && !isCurrentLessonPassed && (
+                <div style={{
+                  marginTop: '40px',
+                  padding: '30px',
+                  backgroundColor: '#FFF3E0',
+                  borderRadius: '10px',
+                  border: '2px solid #FF9800'
+                }}>
+                  <h3 style={{ marginBottom: '15px', color: '#333' }}>
+                    📝 Complete the Quiz to Continue
+                  </h3>
+                  <p style={{ marginBottom: '20px', color: '#666' }}>
+                    Pass the quiz to unlock the next lesson. You need at least {currentQuiz.passingScore} out of {currentQuiz.questions.length} correct answers.
+                  </p>
+                  <button
+                    onClick={handleTakeQuiz}
+                    style={{
+                      padding: '15px 40px',
+                      backgroundColor: '#FF9800',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Take Quiz →
+                  </button>
+                </div>
+              )}
+
+              {isCurrentLessonPassed && (
+                <div style={{
+                  marginTop: '30px',
+                  padding: '20px',
+                  backgroundColor: '#E8F5E9',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#2E7D32', fontSize: '18px' }}>
+                      ✓ Lesson Completed
+                    </div>
+                    <div style={{ color: '#666', fontSize: '14px' }}>
+                      Quiz passed! Ready for next lesson.
+                    </div>
+                  </div>
+                  {currentSessionIndex < courseData.sessions.length - 1 && (
+                    <button
+                      onClick={() => setCurrentSessionIndex(currentSessionIndex + 1)}
+                      style={{
+                        padding: '12px 30px',
+                        backgroundColor: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Next Lesson →
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Doubt Section - Always visible */}
+              <DoubtSection
+                courseId={courseId}
+                sessionIndex={currentSessionIndex}
+                sessionTitle={currentSession.title}
+              />
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '80px', marginBottom: '20px' }}>🔒</div>
+              <h2 style={{ marginBottom: '15px' }}>Lesson Locked</h2>
+              <p style={{ color: '#666', fontSize: '18px' }}>
+                Complete the previous lesson's quiz to unlock this lesson.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Course;
