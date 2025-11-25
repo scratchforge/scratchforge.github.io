@@ -5,6 +5,7 @@ import { doc, updateDoc, getDoc, increment } from 'firebase/firestore';
 import { coursesArray } from '../courses';
 import Quiz from './Quiz';
 import DoubtSection from './DoubtSection';
+import AdComponent from './AdComponent';
 
 function Course() {
   const { courseId } = useParams();
@@ -318,6 +319,13 @@ function Course() {
                   )}
                 </div>
               )}
+
+              {/* Ad Section */}
+              <AdComponent
+                scriptSrc="//pl28132632.effectivegatecpm.com/cf49e39e74e5701f8c0e899dfa62dc5b/invoke.js"
+                containerId="container-course-ad-cf49e39e74e5701f8c0e899dfa62dc5b"
+                position="bottom"
+              />
 
               {/* Doubt Section - Always visible */}
               <DoubtSection

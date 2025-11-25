@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { auth } from '../firebase';
+import AdComponent from './AdComponent';
 
 function Home() {
   const user = auth.currentUser;
@@ -423,6 +424,17 @@ function Home() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Ad Section */}
+      <section style={{ padding: '40px 20px', backgroundColor: '#f9f9f9' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <AdComponent
+            scriptSrc="//pl28132632.effectivegatecpm.com/cf49e39e74e5701f8c0e899dfa62dc5b/invoke.js"
+            containerId="container-cf49e39e74e5701f8c0e899dfa62dc5b"
+            position="inline"
+          />
         </div>
       </section>
 

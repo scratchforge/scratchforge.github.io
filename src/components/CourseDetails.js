@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { coursesArray } from '../courses';
+import AdComponent from './AdComponent';
 
 function CourseDetails() {
   const { courseId } = useParams();
@@ -48,7 +49,7 @@ function CourseDetails() {
 
     try {
       const enrollmentRef = doc(db, 'users', user.uid, 'enrolledCourses', courseId);
-      
+
       await setDoc(enrollmentRef, {
         courseId: courseId,
         courseName: course.title,
@@ -82,9 +83,9 @@ function CourseDetails() {
   return (
     <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
       {/* Back Button */}
-      <Link to="/explore" style={{ 
-        color: '#666', 
-        textDecoration: 'none', 
+      <Link to="/explore" style={{
+        color: '#666',
+        textDecoration: 'none',
         marginBottom: '20px',
         display: 'inline-block'
       }}>
@@ -103,25 +104,25 @@ function CourseDetails() {
         <p style={{ fontSize: '20px', opacity: 0.9, marginBottom: '25px' }}>
           {course.description || 'Master the fundamentals with comprehensive lessons'}
         </p>
-        
+
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={{ 
-            backgroundColor: 'rgba(255,255,255,0.2)', 
-            padding: '10px 20px', 
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            padding: '10px 20px',
             borderRadius: '20px'
           }}>
             📚 {course.sessions ? course.sessions.length : 10} Lessons
           </div>
-          <div style={{ 
-            backgroundColor: 'rgba(255,255,255,0.2)', 
-            padding: '10px 20px', 
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            padding: '10px 20px',
             borderRadius: '20px'
           }}>
             ⏱️ 5+ Hours
           </div>
-          <div style={{ 
-            backgroundColor: 'rgba(255,255,255,0.2)', 
-            padding: '10px 20px', 
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            padding: '10px 20px',
             borderRadius: '20px'
           }}>
             🎓 Beginner Level
@@ -162,7 +163,7 @@ function CourseDetails() {
             <p style={{ color: '#666', marginBottom: '20px' }}>
               {course.sessions ? course.sessions.length : 10} lessons • 5+ hours of content
             </p>
-            
+
             {course.sessions ? (
               <div>
                 {course.sessions.map((session, index) => (
@@ -364,6 +365,15 @@ function CourseDetails() {
                 <li>📱 Mobile & desktop access</li>
               </ul>
             </div>
+          </div>
+
+          {/* Ad Section in Sidebar */}
+          <div style={{ marginTop: '20px' }}>
+            <AdComponent
+              scriptSrc="//pl28132632.effectivegatecpm.com/cf49e39e74e5701f8c0e899dfa62dc5b/invoke.js"
+              containerId="container-coursedetails-ad-cf49e39e74e5701f8c0e899dfa62dc5b"
+              position="sidebar"
+            />
           </div>
         </div>
       </div>
