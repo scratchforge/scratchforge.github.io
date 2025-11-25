@@ -1,64 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { collection, getDocs, getCountFromServer, query } from 'firebase/firestore';
-import { coursesArray } from '../courses';
+import { auth } from '../firebase';
 
 function Home() {
   const user = auth.currentUser;
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalCourses: coursesArray.length,
-    totalLessons: 0,
-    totalEnrollments: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchRealStats();
-  }, []);
-
-  const fetchRealStats = async () => {
-    try {
-      // Get total number of users
-      const usersRef = collection(db, 'users');
-      const usersSnapshot = await getCountFromServer(usersRef);
-      const totalUsers = usersSnapshot.data().count;
-
-      // Calculate total lessons from all courses
-      const totalLessons = coursesArray.reduce((sum, course) => {
-        return sum + (course.sessions ? course.sessions.length : 10);
-      }, 0);
-
-      // Get total enrollments across all users
-      let totalEnrollments = 0;
-      const usersSnap = await getDocs(collection(db, 'users'));
-      
-      for (const userDoc of usersSnap.docs) {
-        const enrollmentsRef = collection(db, 'users', userDoc.id, 'enrolledCourses');
-        const enrollmentsSnap = await getCountFromServer(enrollmentsRef);
-        totalEnrollments += enrollmentsSnap.data().count;
-      }
-
-      setStats({
-        totalUsers: totalUsers,
-        totalCourses: coursesArray.length,
-        totalLessons: totalLessons,
-        totalEnrollments: totalEnrollments
-      });
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      // Fallback to default values if error
-      setStats({
-        totalUsers: 0,
-        totalCourses: coursesArray.length,
-        totalLessons: 50,
-        totalEnrollments: 0
-      });
-      setLoading(false);
-    }
-  };
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -69,15 +14,15 @@ function Home() {
         padding: '80px 40px',
         textAlign: 'center'
       }}>
-        <h1 style={{ 
-          fontSize: '48px', 
+        <h1 style={{
+          fontSize: '48px',
           marginBottom: '20px',
           fontWeight: 'bold'
         }}>
           Learn Anything From Scratch 🚀
         </h1>
-        <p style={{ 
-          fontSize: '22px', 
+        <p style={{
+          fontSize: '22px',
           marginBottom: '30px',
           maxWidth: '700px',
           margin: '0 auto 40px'
@@ -125,49 +70,14 @@ function Home() {
             Explore Courses
           </Link>
         </div>
-
-        {/* Real Stats Section */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '30px',
-          maxWidth: '800px',
-          margin: '60px auto 0',
-          textAlign: 'center'
-        }}>
-          <div>
-            <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-              {loading ? '...' : `${stats.totalUsers}+`}
-            </div>
-            <div style={{ fontSize: '16px', opacity: 0.9 }}>Students Learning</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-              {loading ? '...' : stats.totalCourses}
-            </div>
-            <div style={{ fontSize: '16px', opacity: 0.9 }}>Expert Courses</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-              {loading ? '...' : stats.totalLessons}
-            </div>
-            <div style={{ fontSize: '16px', opacity: 0.9 }}>Total Lessons</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '40px', fontWeight: 'bold' }}>
-              {loading ? '...' : stats.totalEnrollments}
-            </div>
-            <div style={{ fontSize: '16px', opacity: 0.9 }}>Course Enrollments</div>
-          </div>
-        </div>
       </section>
 
       {/* What is ScratchForge Section */}
       <section style={{ padding: '60px 40px', backgroundColor: '#f9f9f9' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            fontSize: '36px', 
+          <h2 style={{
+            textAlign: 'center',
+            fontSize: '36px',
             marginBottom: '20px',
             color: '#333'
           }}>
@@ -181,8 +91,8 @@ function Home() {
             margin: '0 auto 50px',
             lineHeight: '1.8'
           }}>
-            ScratchForge is an innovative online learning platform designed to help you master new skills from the ground up. 
-            Whether you're a beginner or looking to advance your knowledge, our comprehensive courses guide you step-by-step 
+            ScratchForge is an innovative online learning platform designed to help you master new skills from the ground up.
+            Whether you're a beginner or looking to advance your knowledge, our comprehensive courses guide you step-by-step
             through practical, hands-on learning experiences.
           </p>
 
@@ -240,9 +150,9 @@ function Home() {
       {/* Why Choose ScratchForge Section */}
       <section style={{ padding: '60px 40px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            fontSize: '36px', 
+          <h2 style={{
+            textAlign: 'center',
+            fontSize: '36px',
             marginBottom: '50px',
             color: '#333'
           }}>
@@ -252,9 +162,9 @@ function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
             <div>
               <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   marginBottom: '10px',
                   fontSize: '24px',
                   color: '#4CAF50',
@@ -268,9 +178,9 @@ function Home() {
               </div>
 
               <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   marginBottom: '10px',
                   fontSize: '24px',
                   color: '#4CAF50',
@@ -284,9 +194,9 @@ function Home() {
               </div>
 
               <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   marginBottom: '10px',
                   fontSize: '24px',
                   color: '#4CAF50',
@@ -300,9 +210,9 @@ function Home() {
               </div>
 
               <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   marginBottom: '10px',
                   fontSize: '24px',
                   color: '#4CAF50',
@@ -324,7 +234,7 @@ function Home() {
             }}>
               <div style={{ fontSize: '100px', marginBottom: '20px' }}>🎯</div>
               <h3 style={{ fontSize: '28px', marginBottom: '15px', color: '#333' }}>
-                Join {loading ? '...' : stats.totalUsers}+ Happy Learners
+                Join Our Happy Learners
               </h3>
               <p style={{ color: '#666', fontSize: '18px', lineHeight: '1.6' }}>
                 Start your learning journey today and become part of our growing community of skilled professionals.
@@ -352,9 +262,9 @@ function Home() {
       {/* How It Works Section */}
       <section style={{ padding: '60px 40px', backgroundColor: '#f9f9f9' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            fontSize: '36px', 
+          <h2 style={{
+            textAlign: 'center',
+            fontSize: '36px',
             marginBottom: '50px',
             color: '#333'
           }}>
@@ -460,9 +370,9 @@ function Home() {
       {/* Features Section */}
       <section style={{ padding: '60px 40px', backgroundColor: 'white' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            fontSize: '36px', 
+          <h2 style={{
+            textAlign: 'center',
+            fontSize: '36px',
             marginBottom: '50px',
             color: '#333'
           }}>

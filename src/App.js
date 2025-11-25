@@ -172,6 +172,7 @@ function App() {
           <Route path="/explore" element={<ExploreCourses />} />
           <Route path="/practice" element={<PracticeArena />} />
           <Route path="/course-details/:courseId" element={<CourseDetails />} />
+          <Route path="/course/:courseId/session/:sessionId" element={<Course />} />
           <Route path="/course/:courseId" element={<Course />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/doubts" element={<AdminDoubts />} />
