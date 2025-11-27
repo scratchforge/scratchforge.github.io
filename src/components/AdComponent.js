@@ -9,37 +9,24 @@ import React, { useEffect, useRef } from 'react';
  */
 function AdComponent({ scriptSrc, containerId, position = 'inline' }) {
     const containerRef = useRef(null);
-    const scriptLoadedRef = useRef(false);
 
     useEffect(() => {
-        // Only load script once
-        if (scriptLoadedRef.current) return;
-
         // Check if script already exists in document
-        const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
+        let script = document.querySelector(`script[src="${scriptSrc}"]`);
 
-        if (!existingScript) {
-            // Create script element
-            const script = document.createElement('script');
+        if (!script) {
+            // Create script element if it doesn't exist
+            script = document.createElement('script');
             script.src = scriptSrc;
             script.async = true;
             script.setAttribute('data-cfasync', 'false');
 
-            // Append to document body (not to container)
+            // Append to document body
             document.body.appendChild(script);
-
-            scriptLoadedRef.current = true;
-
-            // Cleanup function
-            return () => {
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
-            };
-        } else {
-            scriptLoadedRef.current = true;
         }
-    }, [scriptSrc]);
+
+        // No cleanup - let the script stay loaded for all pages
+    }, [scriptSrc, containerId]);
 
     // Different styles based on position
     const getContainerStyle = () => {
